@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { YouTubePostBody } from "@assets/types/YoutubePostTypes";
 import ytdl from "@distube/ytdl-core";
 
-export async function GET(req: NextRequest) {
-    const requestUrl = new URL(req.url);
-    const youtubeVideoUrl = requestUrl.searchParams.get("videoUrl");
+export async function POST(req: NextRequest) {
+    const { youtubeVideoUrl }: YouTubePostBody = await req.json();
 
     if (!youtubeVideoUrl || !ytdl.validateURL(youtubeVideoUrl)) {
         return NextResponse.json({ returnType: "error", message: "Url não informada ou inválida!" });
     }
 
-    const videoInfo = await ytdl.getInfo(youtubeVideoUrl);
+    try {
+        const videoInfo = await ytdl.getInfo(youtubeVideoUrl);
     const videoFormats = ytdl.filterFormats(videoInfo.formats, "video");
     const mp4Format = videoFormats.find(format => format.container === "mp4");
 
@@ -38,5 +39,13 @@ export async function GET(req: NextRequest) {
             duration: videoInfo.videoDetails.lengthSeconds,
             description: videoInfo.videoDetails.description,
         },
-        });
+    });
+    } catch (err) {
+        console.log(err);
+        return NextResponse.json({
+            returnType: "error",
+            message: "Ocorreu um erro ao obter as informações do vídeo!",
+            errorMessage: err
+        })
+    }
 }
